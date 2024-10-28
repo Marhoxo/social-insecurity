@@ -9,12 +9,17 @@ from pathlib import Path
 from flask import current_app as app
 from flask import flash, redirect, render_template, send_from_directory, url_for
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 from social_insecurity import sqlite
 from social_insecurity.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
 
+limiter = Limiter(get_remote_address, app=app)
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
+@limiter.limit("5 per 15 minutes", error_message="Too many login attempts. Please try again later.")
 def index():
     """Provides the index page for the application.
 
