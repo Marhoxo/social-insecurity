@@ -109,11 +109,14 @@ def comments(username: str, post_id: int):
     user = sqlite.query(get_user, one=True)
 
     if comments_form.is_submitted():
-        insert_comment = f"""
+        insert_comment = """
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
-            VALUES ({post_id}, {user["id"]}, '{comments_form.comment.data}', CURRENT_TIMESTAMP);
-            """
-        sqlite.query(insert_comment)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP);
+        """
+        sqlite.query(
+            insert_comment,
+            (post_id, user["id"], comments_form.comment.data)
+        )
 
     get_post = f"""
         SELECT *
@@ -131,6 +134,8 @@ def comments(username: str, post_id: int):
     return render_template(
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
+
+
 
 
 @app.route("/friends/<string:username>", methods=["GET", "POST"])
