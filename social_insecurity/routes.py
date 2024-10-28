@@ -20,6 +20,7 @@ allowed_attrs = {}
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
 def index():
+    
     """Provides the index page for the application.
 
     It reads the composite IndexForm and based on which form was submitted,
@@ -111,7 +112,6 @@ def comments(username: str, post_id: int):
         WHERE username = '{username}';
         """
     user = sqlite.query(get_user, one=True)
-
     if comments_form.is_submitted():
         comment = san_comment(comments_form.comment.data)
         insert_comment = """
@@ -120,9 +120,8 @@ def comments(username: str, post_id: int):
         """
         sqlite.query(
             insert_comment,
-            (post_id, user["id"], comment)
+            (post_id, user["id"], comment)  # Make sure you are passing all required values here
         )
-
     get_post = f"""
         SELECT *
         FROM Posts AS p JOIN Users AS u ON p.u_id = u.id
@@ -140,12 +139,11 @@ def comments(username: str, post_id: int):
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
 
-
-
 def san_comment(comment):
-    comment = bleach.clean(comment,tags=allowed_tags, attributes=allowed_attrs)
-    return comment
-
+    allowed_tags = ['b', 'i', 'u', 'strong', 'em']
+    allowed_attrs = {}
+    sanitized_comment = bleach.clean(comment, tags=allowed_tags, attributes=allowed_attrs)
+    return sanitized_comment
 
 
 @app.route("/friends/<string:username>", methods=["GET", "POST"])
