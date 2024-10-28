@@ -19,13 +19,12 @@ limiter = Limiter(get_remote_address, app=app)
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
-@limiter.limit("5 per 15 minutes", error_message="Too many login attempts. Please try again later.")
 def index():
     """Provides the index page for the application.
-
-    It reads the composite IndexForm and based on which form was submitted,
+    
+    It reads the composite IndexForm and, based on which form was submitted,
     it either logs the user in or registers a new user.
-
+    
     If no form was submitted, it simply renders the index page.
     """
     index_form = IndexForm()
@@ -33,19 +32,7 @@ def index():
     register_form = index_form.register
 
     if login_form.is_submitted() and login_form.submit.data:
-        get_user = f"""
-            SELECT *
-            FROM Users
-            WHERE username = '{login_form.username.data}';
-            """
-        user = sqlite.query(get_user, one=True)
-
-        if user is None:
-            flash("Sorry, this user does not exist!", category="warning")
-        elif user["password"] != login_form.password.data:
-            flash("Sorry, wrong password!", category="warning")
-        elif user["password"] == login_form.password.data:
-            return redirect(url_for("stream", username=login_form.username.data))
+        return login(login_form)
 
     elif register_form.is_submitted() and register_form.submit.data:
         insert_user = f"""
@@ -58,6 +45,24 @@ def index():
 
     return render_template("index.html.j2", title="Welcome", form=index_form)
 
+@limiter.limit("5 per 15 minutes", error_message="Too many login attempts. Please try again later.")
+def login(login_form):
+    """Handles login functionality with rate limiting applied."""
+    get_user = f"""
+        SELECT *
+        FROM Users
+        WHERE username = '{login_form.username.data}';
+        """
+    user = sqlite.query(get_user, one=True)
+
+    if user is None:
+        flash("Sorry, this user does not exist!", category="warning")
+    elif user["password"] != login_form.password.data:
+        flash("Sorry, wrong password!", category="warning")
+    else:
+        return redirect(url_for("stream", username=login_form.username.data))
+    
+    return redirect(url_for("index"))
 
 @app.route("/stream/<string:username>", methods=["GET", "POST"])
 def stream(username: str):
