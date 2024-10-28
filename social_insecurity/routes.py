@@ -30,10 +30,8 @@ def index():
     index_form = IndexForm()
     login_form = index_form.login
     register_form = index_form.register
-
     if login_form.is_submitted() and login_form.submit.data:
         return login(login_form)
-
     elif register_form.is_submitted() and register_form.submit.data:
         insert_user = f"""
             INSERT INTO Users (username, first_name, last_name, password)
@@ -42,7 +40,6 @@ def index():
         sqlite.query(insert_user)
         flash("User successfully created!", category="success")
         return redirect(url_for("index"))
-
     return render_template("index.html.j2", title="Welcome", form=index_form)
 
 @limiter.limit("5 per 15 minutes", error_message="Too many login attempts. Please try again later.")
@@ -54,14 +51,12 @@ def login(login_form):
         WHERE username = '{login_form.username.data}';
         """
     user = sqlite.query(get_user, one=True)
-
     if user is None:
         flash("Sorry, this user does not exist!", category="warning")
     elif user["password"] != login_form.password.data:
         flash("Sorry, wrong password!", category="warning")
     else:
         return redirect(url_for("stream", username=login_form.username.data))
-    
     return redirect(url_for("index"))
 
 @app.route("/stream/<string:username>", methods=["GET", "POST"])
