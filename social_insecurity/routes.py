@@ -76,13 +76,14 @@ def stream(username: str):
     user = sqlite.query(get_user, one=True)
 
     if post_form.is_submitted():
+        comment = san_comment(post_form.content.data)
         if post_form.image.data:
             path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / post_form.image.data.filename
             post_form.image.data.save(path)
 
         insert_post = f"""
             INSERT INTO Posts (u_id, content, image, creation_time)
-            VALUES ({user["id"]}, '{post_form.content.data}', '{post_form.image.data.filename}', CURRENT_TIMESTAMP);
+            VALUES ({user["id"]}, '{comment}', '{post_form.image.data.filename}', CURRENT_TIMESTAMP);
             """
         sqlite.query(insert_post)
         return redirect(url_for("stream", username=username))
@@ -112,16 +113,15 @@ def comments(username: str, post_id: int):
         WHERE username = '{username}';
         """
     user = sqlite.query(get_user, one=True)
+
     if comments_form.is_submitted():
         comment = san_comment(comments_form.comment.data)
-        insert_comment = """
+        insert_comment = f"""
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP);
-        """
-        sqlite.query(
-            insert_comment,
-            (post_id, user["id"], comment)  # Make sure you are passing all required values here
-        )
+            VALUES ({post_id}, {user["id"]}, '{comment}', CURRENT_TIMESTAMP);
+            """
+        sqlite.query(insert_comment)
+
     get_post = f"""
         SELECT *
         FROM Posts AS p JOIN Users AS u ON p.u_id = u.id
