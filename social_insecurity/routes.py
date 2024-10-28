@@ -6,12 +6,16 @@ It also contains the SQL queries used for communicating with the database.
 
 from pathlib import Path
 
+import bleach
+
 from flask import current_app as app
 from flask import flash, redirect, render_template, send_from_directory, url_for
 
 from social_insecurity import sqlite
 from social_insecurity.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
 
+allowed_tags = ['b', 'i', 'u', 'strong', 'em', 'p']
+allowed_attrs = {}
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
@@ -109,13 +113,14 @@ def comments(username: str, post_id: int):
     user = sqlite.query(get_user, one=True)
 
     if comments_form.is_submitted():
+        comment = san_comment(comments_form.comment.data)
         insert_comment = """
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP);
         """
         sqlite.query(
             insert_comment,
-            (post_id, user["id"], comments_form.comment.data)
+            (post_id, user["id"], comment)
         )
 
     get_post = f"""
@@ -135,6 +140,11 @@ def comments(username: str, post_id: int):
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
 
+
+
+def san_comment(comment):
+    comment = bleach.clean(comment,tags=allowed_tags, attributes=allowed_attrs)
+    return comment
 
 
 
