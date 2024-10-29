@@ -33,7 +33,7 @@ def index():
             FROM Users
             WHERE username = ?
             """
-        user = sqlite.query(get_user, (login_form.username.data,), one=True)
+        user = sqlite.query(get_user, login_form.username.data, one=True)
 
         if user is None:
             flash("Sorry, this user does not exist!", category="warning")
@@ -47,7 +47,8 @@ def index():
             INSERT INTO Users (username, first_name, last_name, password)
             VALUES (?, ?, ?, ?)
             """
-        sqlite.query(insert_user, (register_form.username.data, register_form.first_name.data, register_form.last_name.data, register_form.password.data) )
+        sqlite.query(insert_user, register_form.username.data, register_form.first_name.data,
+                     register_form.last_name.data, register_form.password.data)
         flash("User successfully created!", category="success")
         return redirect(url_for("index"))
 
@@ -68,7 +69,7 @@ def stream(username: str):
         FROM Users
         WHERE username = ?
         """
-    user = sqlite.query(get_user, (username,), one=True)
+    user = sqlite.query(get_user, username, one=True)
 
     if post_form.is_submitted():
         if post_form.image.data:
@@ -79,16 +80,18 @@ def stream(username: str):
             INSERT INTO Posts (u_id, content, image, creation_time)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             """
-        sqlite.query(insert_post, (user["id"], post_form.content.data, post_form.image.data.filename))
+        sqlite.query(insert_post, user["id"], post_form.content.data, post_form.image.data.filename)
         return redirect(url_for("stream", username=username))
 
     get_posts = """
          SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
          FROM Posts AS p JOIN Users AS u ON u.id = p.u_id
-         WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id = ? ) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id = ? ) OR p.u_id = ?
+         WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id = ?) 
+         OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id = ?) 
+         OR p.u_id = ?
          ORDER BY p.creation_time DESC
         """
-    posts = sqlite.query(get_posts, (user["id"], user["id"], user["id"]))
+    posts = sqlite.query(get_posts, user["id"], user["id"], user["id"])
     return render_template("stream.html.j2", title="Stream", username=username, form=post_form, posts=posts)
 
 
@@ -106,14 +109,14 @@ def comments(username: str, post_id: int):
         FROM Users
         WHERE username = ?
         """
-    user = sqlite.query(get_user, (username,), one=True)
+    user = sqlite.query(get_user, username, one=True)
 
     if comments_form.is_submitted():
         insert_comment = """
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             """
-        sqlite.query(insert_comment,(post_id, user["id"], comments_form.comment.data))
+        sqlite.query(insert_comment, post_id, user["id"], comments_form.comment.data)
 
     get_post = """
         SELECT *
@@ -123,11 +126,11 @@ def comments(username: str, post_id: int):
     get_comments = """
         SELECT DISTINCT *
         FROM Comments AS c JOIN Users AS u ON c.u_id = u.id
-        WHERE c.p_id= ?
+        WHERE c.p_id = ?
         ORDER BY c.creation_time DESC
         """
-    post = sqlite.query(get_post,(post_id,), one=True)
-    comments = sqlite.query(get_comments, (post_id,))
+    post = sqlite.query(get_post, post_id, one=True)
+    comments = sqlite.query(get_comments, post_id)
     return render_template(
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
@@ -147,7 +150,7 @@ def friends(username: str):
         FROM Users
         WHERE username = ?
         """
-    user = sqlite.query(get_user, (username,), one=True)
+    user = sqlite.query(get_user, username, one=True)
 
     if friends_form.is_submitted():
         get_friend = """
@@ -155,13 +158,14 @@ def friends(username: str):
             FROM Users
             WHERE username = ?
             """
-        friend = sqlite.query(get_friend, (friends_form.username.data,), one=True)
-        get_friends = f"""
+        friend = sqlite.query(get_friend, friends_form.username.data, one=True)
+        
+        get_friends = """
             SELECT f_id
             FROM Friends
             WHERE u_id = ?
             """
-        friends = sqlite.query(get_friends, (user["id"],))
+        friends = sqlite.query(get_friends, user["id"])
 
         if friend is None:
             flash("User does not exist!", category="warning")
@@ -172,9 +176,9 @@ def friends(username: str):
         else:
             insert_friend = """
                 INSERT INTO Friends (u_id, f_id)
-                VALUES (? , ?)
+                VALUES (?, ?)
                 """
-            sqlite.query(insert_friend,(user["id"], friend["id"]))
+            sqlite.query(insert_friend, user["id"], friend["id"])
             flash("Friend successfully added!", category="success")
 
     get_friends = """
@@ -182,7 +186,7 @@ def friends(username: str):
         FROM Friends AS f JOIN Users as u ON f.f_id = u.id
         WHERE f.u_id = ? AND f.f_id != ?
         """
-    friends = sqlite.query(get_friends, (user["id"], user["id"] ))
+    friends = sqlite.query(get_friends, user["id"], user["id"])
     return render_template("friends.html.j2", title="Friends", username=username, friends=friends, form=friends_form)
 
 
@@ -200,7 +204,7 @@ def profile(username: str):
         FROM Users
         WHERE username = ?
         """
-    user = sqlite.query(get_user, (username,), one=True)
+    user = sqlite.query(get_user, username, one=True)
 
     if profile_form.is_submitted():
         update_profile = """
@@ -208,11 +212,11 @@ def profile(username: str):
             SET education= ?, employment= ?,
                 music= ?, movie= ?,
                 nationality= ?, birthday= ?
-            WHERE username= ?
+            WHERE username = ?
             """
-        sqlite.query(update_profile, (profile_form.education.data, profile_form.employment.data, 
-                    profile_form.music.data, profile_form.movie.data, profile_form.nationality.data, 
-                    profile_form.birthday.data, username))
+        sqlite.query(update_profile, profile_form.education.data, profile_form.employment.data, 
+                     profile_form.music.data, profile_form.movie.data, profile_form.nationality.data, 
+                     profile_form.birthday.data, username)
         return redirect(url_for("profile", username=username))
 
     return render_template("profile.html.j2", title="Profile", username=username, user=user, form=profile_form)
