@@ -141,8 +141,7 @@ def comments(username: str, post_id: int):
 
 def san_comment(comment):
     allowed_tags = ['b', 'i', 'u', 'strong', 'em']
-    allowed_attrs = {}
-    sanitized_comment = bleach.clean(comment, tags=allowed_tags, attributes=allowed_attrs)
+    sanitized_comment = bleach.clean(comment, tags=allowed_tags)
     return sanitized_comment
 
 
