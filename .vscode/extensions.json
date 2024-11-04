@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "samuelcolvin.jinjahtml",
+        "ms-python.vscode-pylance",
+        "monosans.djlint",
+        "ms-python.python",
+        "charliermarsh.ruff"
+    ]
+}
