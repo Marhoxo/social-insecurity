@@ -11,7 +11,12 @@ from flask import flash, redirect, render_template, send_from_directory, url_for
 
 from social_insecurity import sqlite
 from social_insecurity.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
+from werkzeug.utils import secure_filename
+import magic
+import uuid
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config["ALLOWED_EXTENTIONS"]
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
@@ -69,18 +74,45 @@ def stream(username: str):
         WHERE username = '{username}';
         """
     user = sqlite.query(get_user, one=True)
+    image = post_form.image.data
 
     if post_form.is_submitted():
-        if post_form.image.data:
-            path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / post_form.image.data.filename
-            post_form.image.data.save(path)
 
-        insert_post = f"""
-            INSERT INTO Posts (u_id, content, image, creation_time)
-            VALUES ({user["id"]}, '{post_form.content.data}', '{post_form.image.data.filename}', CURRENT_TIMESTAMP);
-            """
-        sqlite.query(insert_post)
-        return redirect(url_for("stream", username=username))
+        if image and allowed_file(image.filename):
+            
+            max_size = app.config["MAX_UPLOAD_SIZE"]
+            file_data = image.read()
+            file_size = len(file_data)
+            if file_size > max_size:
+                flash("File is too large. Maximum upload size is 16MB.", category="warning")
+                return redirect(url_for("stream", username=username))
+            
+            image.seek(0)
+            
+            filename = secure_filename(image.filename)
+            file_extention = filename.rsplit('.', 1)[1].lower() 
+
+            unique_filename = f"{uuid.uuid4()}.{file_extention}"
+
+            mime = magic.Magic(mime=True)
+            file_mime_type = mime.from_buffer(file_data[:1024])
+            if file_mime_type not in ['image/jpeg', 'image/png', 'image/gif']:
+                flash("Invalid file type!", category="waring")
+                return redirect(url_for("stream", username=username))
+           
+        
+        
+            path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / unique_filename
+            image.save(path)
+
+            insert_post = f"""
+                INSERT INTO Posts (u_id, content, image, creation_time)
+                VALUES ({user["id"]}, '{post_form.content.data}', '{unique_filename}', CURRENT_TIMESTAMP);
+                """
+            sqlite.query(insert_post)
+            return redirect(url_for("stream", username=username))
+        else:
+            flash("File type not allowed!", category="waring")
 
     get_posts = f"""
          SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc

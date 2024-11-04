@@ -20,5 +20,6 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "secret"  # TODO: Use this with wtforms
     SQLITE3_DATABASE_PATH = "sqlite3.db"  # Path relative to the Flask instance folder
     UPLOADS_FOLDER_PATH = "uploads"  # Path relative to the Flask instance folder
-    ALLOWED_EXTENSIONS = {}  # TODO: Might use this at some point, probably don't want people to upload any file type
+    MAX_UPLOAD_SIZE = 16 * 1024 * 1024  # 16MB file size limit
+    ALLOWED_EXTENTIONS = {'png','jpg','jpeg','gif'}
     WTF_CSRF_ENABLED = False  # TODO: I should probably implement this wtforms feature, but it's not a priority

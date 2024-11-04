@@ -11,6 +11,7 @@ python = "^3.9"
 Flask = {extras = ["dotenv"], version = "^3.0.0"}
 Flask-WTF = "^1.2.0"
 pytest = "^8.0.0"
+python-magic = "^0.4.27"
 
 [tool.poetry.group.dev.dependencies]
 djlint = "^1.34.0"
