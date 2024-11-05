@@ -97,7 +97,7 @@ def stream(username: str):
             mime = magic.Magic(mime=True)
             file_mime_type = mime.from_buffer(file_data[:1024])
             if file_mime_type not in ['image/jpeg', 'image/png', 'image/gif']:
-                flash("Invalid file type!", category="waring")
+                flash("Invalid file type!", category="warning")
                 return redirect(url_for("stream", username=username))
            
         
@@ -112,7 +112,7 @@ def stream(username: str):
             sqlite.query(insert_post)
             return redirect(url_for("stream", username=username))
         else:
-            flash("File type not allowed!", category="waring")
+            flash("File type not allowed!", category="warning")
 
     get_posts = f"""
          SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
